@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+          
+            height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+
+        .completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+
+
+        /* Style for the table inside the #table div */
+#table table {
+    width: 100%;
+    border-collapse: collapse; /* Removes gaps between table cells */
+    margin-top: 20px;
+}
+
+#table th, #table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+#table th {
+    background-color: #333;
+    color: white;
+}
+
+#table td {
+    background-color: #f9f9f9;
+}
+
+#table tr:nth-child(even) td {
+    background-color: #f4f4f4;
+}
+
+#table tr:hover td {
+    background-color: #eaeaea;
+}
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>My To-Do List</h1>
+        
+        <form id="task-form" >
+            <input type="text" id="task-input" placeholder="Enter a new task" required>
+            <button type="button" onclick="postTask()">Add Task</button>
+        </form>
+        
+      <div id="table">
+
+      </div>
+    </div>
+
+    <script>
+        async function renderTable(data={}){
+            let table = `
+            <table>
+                <tr>
+                    <th>Task</th>
+                    <th>Edit</th>
+                     <th>Deleted</th>
+                    
+                   
+                </tr>
+                
+            `;
+
+            for(let i = 0; i < data.length;i++){
+                console.log(i)
+                table = table + `<tr>
+                    <td>${data[i].task}</td>
+                    <td><button onclick="editTask('${data[i]._id}', '${data[i].task}')" style="background-color:green">Edit</button></td>
+
+                    <td> <button onClick="deleteTask('${data[i]._id}')" style="background-color:red">Delete</button></td>
+                </tr>`
+            }
+            table = table + `</table>` ;
+
+            document.getElementById('table').innerHTML = table;
+            
+        }
+        
+     
+        
+        
+        async function getTask() {
+            await fetch("http://localhost:4000/get") // Include the protocol (http://)
+            .then((res) => res.json()) // Return the JSON response
+            .then((data) => {
+                console.log(data); // Log the fetched data
+                renderTable(data)
+            })
+            .catch((error) => {
+                console.error("Error fetching tasks:", error); // Handle any errors
+            });
+        }
+        
+        getTask();
+        
+
+        async function postTask() {
+            const taskInput = document.getElementById("task-input"); // Get the input field
+            const task = taskInput.value; // Correctly retrieve the input value
+            console.log(task);
+        
+            await fetch("http://localhost:4000/post", {
+                method: "POST", // Method should be in uppercase
+                headers: {
+                    "Content-Type": "application/json" // Set the correct content type
+                },
+                body: JSON.stringify({ // Convert the body to a JSON string
+                    task: task
+                })
+            })
+            .then((res) => res.json()) // Return the JSON response
+            .then((data) => {
+                console.log(data); // Log the fetched data
+                getTask(); // Refresh the task list
+        
+                taskInput.value = ''; // Clear the input field after successful task addition
+            })
+            .catch((error) => {
+                console.error("Error posting task:", error); // Handle any errors
+            });
+        }
+        
+        async function deleteTask(taskId) {
+            await fetch(`http://localhost:4000/delete/${taskId}`, {
+                method: "DELETE", // Specify the DELETE method
+                headers: {
+                    "Content-Type": "application/json" // Set the content type, if needed
+                }
+            })
+            .then((res) => {
+                if (!res.ok) { // Check if the response is not OK
+                    throw new Error("Network response was not ok");
+                }
+                return res.json(); // Return the JSON response
+            })
+            .then((data) => {
+                getTask()
+                console.log("Task deleted:", data); // Log the response data
+            })
+            .catch((error) => {
+                console.error("Error deleting task:", error); // Handle any errors
+            });
+        }
+               
+        async function editTask(taskId, currentTask) {
+            const updatedTask = prompt("Edit task:", currentTask); // Prompt user for new task text
+            if (updatedTask !== null) {
+                await fetch(`http://localhost:4000/update/${taskId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ task: updatedTask })
+                })
+                .then((res) => res.json())
+                .then((data) => {
+                    console.log("Task updated:", data);
+                    getTask(); // Refresh the task list after update
+                })
+                .catch((error) => {
+                    console.error("Error updating task:", error);
+                });
+            }
+        }
+    
+
+
+        
+    </script>
+
+</body>
+</html>
